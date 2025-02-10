@@ -113,7 +113,7 @@ class QNA(Star):
             logger.error(f"在调用LLM解答时报错: {e}")
 
     @event_message_type(EventMessageType.GROUP_MESSAGE)
-    async def auto_answer(self, event: AstrMessageEvent):
+    def auto_answer(self, event: AstrMessageEvent):
         """自动回答群消息中的问题"""
         # 判定是否启用自动回复
         if not self.config.get("enable_qna", False):
@@ -130,7 +130,7 @@ class QNA(Star):
                 if re.search(self.question_pattern, message):
                     try:
                         logger.error(f"message: {message}")
-                        yield self._llm_check_and_answer(event, message)
+                        self._llm_check_and_answer(event, message)
                     except Exception as e:
                         # 记录错误信息，确保出现异常时不影响其他消息的处理
                         logger.error(f"调用LLM检测并回答问题时发生异常，异常信息: {e}")
