@@ -66,7 +66,7 @@ class QNA(Star):
             req.conversation = conversation
             req.contexts = json.loads(conversation.history)
             req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
-
+            logger.error(f"persona: {req.system_prompt}")
             qna_response = await provider.text_chat(**req.__dict__)
 
             logger.error(f"answer {qna_response.completion_text}")
