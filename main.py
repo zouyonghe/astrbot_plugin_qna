@@ -25,7 +25,7 @@ class QNA(Star):
             logger.debug(f"自动问答关键词正则: {self.question_pattern}")
 
     def _in_qna_group_list(self, event: AstrMessageEvent) -> bool:
-        qna_group_list = self.config.get("qna_group_list", "").split(";")
+        qna_group_list = [group.strip() for group in self.config.get("qna_group_list", "").split(";")]
         if str(event.get_group_id()) in qna_group_list:
             logger.debug(f"群 {event.get_group_id()} 在自动回答名单内")
             return True
