@@ -5,18 +5,17 @@ import re
 from astrbot.api.all import *
 from astrbot.core.provider.entites import ProviderRequest
 from packages.astrbot.long_term_memory import LongTermMemory
-from packages.astrbot.main import Main
 
 logger = logging.getLogger("astrbot")
 
 
 @register("QNA", "buding", "一个用于自动回答群聊问题的插件", "0.0.1", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
-    def __init__(self, context: Context, config: dict):
+    def __init__(self, context: Context, config: dict, star: Star):
         super().__init__(context)
         self.config = config
         self.ltm = None
-        self.main = Main(self.context)
+        self.main = star.context.get_registered_star(star_name="astrbot")
 
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
