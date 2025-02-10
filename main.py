@@ -32,7 +32,6 @@ class QNA(Star):
 
         if question_keyword_list:
             self.question_pattern = r"(?i)(" + "|".join(map(re.escape, question_keyword_list)) + r")"
-            logger.debug(f"自动问答关键词正则: {self.question_pattern}")
 
     def _in_qna_group_list(self, event: AstrMessageEvent) -> bool:
         qna_group_list = [
