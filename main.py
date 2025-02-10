@@ -16,7 +16,7 @@ class QNA(Star):
         super().__init__(context)
         self.config = config
         self.ltm = None
-        self.main = None
+        self.bot = None
 
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
@@ -42,11 +42,10 @@ class QNA(Star):
         return False
 
     def _load_star(self):
-        if self.main is None:
-            #self.main = self.context.get_registered_star(star_name="astrbot").star_cls
-            self.main = Main(self.context)
-
-
+        if self.bot is None:
+            main = self.context.get_registered_star(star_name="astrbot").star_cls
+            if isinstance(main, Main):
+                logger.error("HERE")
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
 
