@@ -73,7 +73,7 @@ class QNA(Star):
             f"7. 对于提问内容清晰，但无法明确回答的问题，可以通过函数调用通过网络搜索答案。\n"
             f"8. 在作答时基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
             f"9. 基于以上信息进行作答，尽量提供能带来更多信息和帮助的回答。\n"
-            f"10. 如果回复`NULL`，则必须以`NULL`开头，在其后添加空格并添加不回复的原因，不要添加任何额外内容。\n\n"
+            f"10. 如果回复`NULL`，则必须以`NULL`开头，在其后添加空格并添加简略的不回复原因，不要添加任何额外内容。\n\n"
             f"内容:{message}"
         )
 
@@ -91,12 +91,12 @@ class QNA(Star):
             req.func_tool = self.context.get_llm_tool_manager()
 
             await self.bot.decorate_llm_req(event, req)
-            logger.error(f"REQUEST: {str(req)}")
+            logger.debug(f"REQUEST: {str(req)}")
             qna_response = await provider.text_chat(**req.__dict__)
 
             if qna_response and qna_response.completion_text:
                 answer = qna_response.completion_text
-                logger.error(f"ANSWER: {str(answer)}")
+                logger.debug(f"ANSWER: {str(answer)}")
                 if answer.strip().startswith("NULL"):
                     return
                 yield event.plain_result(answer)
