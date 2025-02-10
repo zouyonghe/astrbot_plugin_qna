@@ -1,0 +1,26 @@
+{
+    "enable_qna": {
+        "type": "bool",
+        "description": "启用自动回答",
+        "default": false,
+        "hint": "全局设置是否启用自动回答"
+    },
+    "qna_group_list": {
+        "type": "string",
+        "description": "自动回答应用群组列表",
+        "default": "",
+        "hint": "列表内的群组才会自动回答，填写群号，群号之间使用英文分号分隔"
+    },
+    "question_keyword_list": {
+        "type": "string",
+        "description": "本地识别关键字",
+        "default": "如何;怎样;什么;怎么;谁;哪;何;吗",
+        "hint": "用于本地检测问题的关键字，使用英文分号分隔"
+    },
+    "llm_answer_probability": {
+        "type": "float",
+        "description": "调用LLM回答的概率",
+        "default": 1,
+        "hint": "根据设置的概率回答问题，0代表完全不回答，1代表必然使用LLM回答"
+    }
+}
