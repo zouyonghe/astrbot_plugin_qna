@@ -57,7 +57,7 @@ class QNA(Star):
         qna_prompt = (
             f"回复要求：\n"
             f"1. 如果内容完全不包含提问信息时，或内容包含“什么”“怎么”等提问词，但不具备上下文就无法直接解答时，回复 `NULL`。\n"
-            f"2. 如果内容包含提问信息，但不是知识性问题，依旧回复`NULL`。"
+            f"2. 如果内容包含提问信息，但不是知识性问题，依旧回复`NULL`。\n"
             f"3. 如果内容提供的信息较为明确并能够依据该信息作答，则基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
             f"4. 基于以上信息，请尽量对能够回答的问题作答。\n"
             f"5. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
@@ -67,7 +67,7 @@ class QNA(Star):
         try:
             req = ProviderRequest(prompt=qna_prompt, image_urls=[])
             await self.main.decorate_llm_req(event, req)
-
+            logger.error(f"prompt_prefix: {self.main.prompt_prefix}")
             logger.error(f"request: {req}")
             # req.session_id = event.session_id
             #
