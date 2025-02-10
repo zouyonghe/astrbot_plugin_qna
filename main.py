@@ -1,8 +1,11 @@
+import inspect
 import logging
 import random
 import re
+from typing import AsyncGenerator, Awaitable
 
 from astrbot.api.all import *
+from astrbot.core import astrbot_config
 from astrbot.core.provider.entites import ProviderRequest
 from packages.astrbot.long_term_memory import LongTermMemory
 from packages.astrbot.main import Main
@@ -23,8 +26,6 @@ class QNA(Star):
                 self.ltm = LongTermMemory(self.context.get_config()['provider_ltm_settings'], self.context)
             except BaseException as e:
                 logger.error(f"聊天增强 err: {e}")
-
-
 
         # 读取关键词列表
         question_keyword_list = self.config.get("question_keyword_list", "").split(";")
@@ -89,19 +90,65 @@ class QNA(Star):
             req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
             req.func_tool = self.context.get_llm_tool_manager()
 
+            if isinstance(req.contexts, str):
+                req.contexts = json.loads(req.contexts)
+
             await self.bot.decorate_llm_req(event, req)
-            logger.debug(f"REQUEST: {str(req)}")
+
+            logger.error(f"REQUEST: {str(req)}")
+
             qna_response = await provider.text_chat(**req.__dict__)
 
-            if qna_response and qna_response.completion_text:
+            if qna_response.role == 'assistant':
                 answer = qna_response.completion_text
-                logger.debug(f"ANSWER: {str(answer)}")
+                logger.error(f"ANSWER_1: {str(answer)}")
                 if answer.strip().startswith("NULL"):
                     return
                 yield event.plain_result(answer)
+            elif qna_response.role == 'err':
+                event.plain_result(f"AstrBot 请求失败。\n错误信息: {qna_response.completion_text}")
+            elif qna_response.role == 'tool':
+                # function calling
+                function_calling_result = {}
+                for func_tool_name, func_tool_args in zip(qna_response.tools_call_name, qna_response.tools_call_args):
+                    func_tool = req.func_tool.get_func(func_tool_name)
+                    logger.info(f"调用工具函数：{func_tool_name}，参数：{func_tool_args}")
+                    try:
+                        # 尝试调用工具函数
+                        wrapper = self._call_handler(event, func_tool.handler, **func_tool_args)
+                        async for resp in wrapper:
+                            if resp is not None:
+                                function_calling_result[func_tool_name] = resp
+                            else:
+                                yield
+                        event.clear_result()  # 清除上一个 handler 的结果
+                    except Exception as e:
+                        logger.error(f"LLM函数调用异常: {str(e)}")
+                        function_calling_result[func_tool_name] = "When calling the function, an error occurred: " + str(e)
+
+                if function_calling_result:
+                    extra_prompt = "\n\nSystem executed some external tools for this task and here are the results:\n"
+                    for tool_name, tool_result in function_calling_result.items():
+                        extra_prompt += f"Tool: {tool_name}\nTool Result: {tool_result}\n"
+                else:
+                    extra_prompt = "\n\nSystem executed some external tools for this task but NO results found.\n"
+
+                req.prompt += extra_prompt
+                qna_response = await provider.text_chat(**req.__dict__)
+
+                if qna_response.role == 'assistant':
+                    answer = qna_response.completion_text
+                    logger.error(f"ANSWER_2x: {str(answer)}")
+                    if answer.strip().startswith("NULL"):
+                        return
+                    yield event.plain_result(answer)
+                elif qna_response.role == 'err':
+                    event.plain_result(f"AstrBot 请求失败。\n错误信息: {qna_response.completion_text}")
+                elif qna_response.role == 'tool':
+                    logger.debug("QNA不支持循环函数调用")
+                    return
 
             await self.bot.after_llm_req(event)
-
         except Exception as e:
             logger.error(f"在调用LLM回复时报错: {e}")
 
@@ -119,6 +166,14 @@ class QNA(Star):
         if not self.question_pattern or not self._in_qna_group_list(event):
             return
 
+        # 检测到两类唤醒词均交给原始流程处理
+        logger.error(f"event.message_str: {event.message_str}")
+        logger.error(f"event.message_obj.message_str: {event.message_obj.message_str}")
+        if event.message_str.startswith(astrbot_config['wake_prefix']):
+            return
+        if event.message_str.endswith(astrbot_config['provider_settings']['wake_prefix']):
+            return
+
         # 遍历消息，匹配关键词
         for comp in event.get_messages():
             if isinstance(comp, BaseMessageComponent):
@@ -127,5 +182,30 @@ class QNA(Star):
                     async for resp in self._llm_check_and_answer(event, message):
                         yield resp
 
+    async def _call_handler(
+            self,
+            event: AstrMessageEvent,
+            handler: Awaitable,
+            **params
+    ) -> AsyncGenerator[None, None]:
+        '''调用 Handler。'''
+        # 判断 handler 是否是类方法（通过装饰器注册的没有 __self__ 属性）
+        ready_to_call = handler(event, **params)
 
+        if isinstance(ready_to_call, AsyncGenerator):
+            async for ret in ready_to_call:
+                # 如果处理函数是生成器，返回值只能是 MessageEventResult 或者 None（无返回值）
+                if isinstance(ret, (MessageEventResult, CommandResult)):
+                    event.set_result(ret)
+                    yield
+                else:
+                    yield ret
+        elif inspect.iscoroutine(ready_to_call):
+            # 如果只是一个 coroutine
+            ret = await ready_to_call
+            if isinstance(ret, (MessageEventResult, CommandResult)):
+                event.set_result(ret)
+                yield
+            else:
+                yield ret
 
