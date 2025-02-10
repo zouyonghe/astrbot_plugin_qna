@@ -73,27 +73,26 @@ class QNA(Star):
 
         try:
             req = ProviderRequest(prompt=qna_prompt, image_urls=[])
-            await self.bot.decorate_llm_req(event, req)
-            logger.error(f"prompt_prefix: {self.bot.prompt_prefix}")
-            logger.error(f"prompt_prefix_1: {self.context.get_config()['provider_settings']['prompt_prefix']}")
-            logger.error(f"request: {req}")
-            # req.session_id = event.session_id
-            #
-            # conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
-            # if not conversation_id:
-            #     conversation_id = await self.context.conversation_manager.new_conversation(event.unified_msg_origin)
-            #
-            # conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
-            # req.conversation = conversation
-            # req.contexts = json.loads(conversation.history)
-            # req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
-            # req.func_tool = self.context.get_llm_tool_manager()
+            req.session_id = event.session_id
 
-            if self.ltm:
-                try:
-                    await self.ltm.on_req_llm(event, req)
-                except BaseException as e:
-                    logger.error(f"ltm: {e}")
+            conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
+            if not conversation_id:
+                conversation_id = await self.context.conversation_manager.new_conversation(event.unified_msg_origin)
+            conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
+            req.conversation = conversation
+            req.contexts = json.loads(conversation.history)
+            req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
+            req.func_tool = self.context.get_llm_tool_manager()
+
+            await self.bot.decorate_llm_req(event, req)
+
+            logger.error(f"REQUEST: {req}")
+
+            # if self.ltm:
+            #     try:
+            #         await self.ltm.on_req_llm(event, req)
+            #     except BaseException as e:
+            #         logger.error(f"ltm: {e}")
 
             qna_response = await provider.text_chat(**req.__dict__)
 
