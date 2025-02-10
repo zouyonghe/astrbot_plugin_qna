@@ -96,7 +96,7 @@ class QNA(Star):
 
             if qna_response and qna_response.completion_text:
                 answer = qna_response.completion_text
-                logger.error("ANSWER: {str(answer)}")
+                logger.error(f"ANSWER: {str(answer)}")
                 if answer.strip().startswith("NULL"):
                     return
                 yield event.plain_result(answer)
