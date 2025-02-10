@@ -91,12 +91,12 @@ class QNA(Star):
             req.func_tool = self.context.get_llm_tool_manager()
 
             await self.bot.decorate_llm_req(event, req)
-            logger.error("REQUEST: ", req)
+            logger.error(f"REQUEST: {str(req)}")
             qna_response = await provider.text_chat(**req.__dict__)
 
             if qna_response and qna_response.completion_text:
                 answer = qna_response.completion_text
-                logger.error("ANSWER: " + answer)
+                logger.error("ANSWER: {str(answer)}")
                 if answer.strip().startswith("NULL"):
                     return
                 yield event.plain_result(answer)
@@ -106,7 +106,6 @@ class QNA(Star):
         except Exception as e:
             logger.error(f"在调用LLM回复时报错: {e}")
 
-
     @event_message_type(EventMessageType.GROUP_MESSAGE)
     async def auto_answer(self, event: AstrMessageEvent):
         """自动回答群消息中的问题"""
@@ -115,20 +114,17 @@ class QNA(Star):
 
         # 判定是否启用自动回复
         if not self.config.get("enable_qna", False):
-            logger.error("HERE 1")
             return
 
         # 如果没有配置关键词或启用群组列表，直接返回
         if not self.question_pattern or not self._in_qna_group_list(event):
-            logger.error("HERE 2")
             return
-        logger.error("HERE 3")
+
         # 遍历消息，匹配关键词
         for comp in event.get_messages():
             if isinstance(comp, BaseMessageComponent):
                 message = comp.toString().strip()
                 if re.search(self.question_pattern, message):
-                    logger.error("MESSAGE: " + message)
                     async for resp in self._llm_check_and_answer(event, message):
                         yield resp
 
