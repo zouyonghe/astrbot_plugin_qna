@@ -10,7 +10,7 @@ from packages.astrbot.main import Main
 logger = logging.getLogger("astrbot")
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "0.0.1", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.0.0", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -21,8 +21,7 @@ class QNA(Star):
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
                 self.ltm = LongTermMemory(self.context.get_config()['provider_ltm_settings'], self.context)
-                logger.error(f"image_caption{self.ltm.image_caption}")
-                self.ltm.image_caption = None
+                self.ltm.image_caption = False
             except BaseException as e:
                 logger.error(f"聊天增强 err: {e}")
 
@@ -93,12 +92,6 @@ class QNA(Star):
 
             logger.error(f"REQUEST: {req}")
 
-            # if self.ltm:
-            #     try:
-            #         await self.ltm.on_req_llm(event, req)
-            #     except BaseException as e:
-            #         logger.error(f"ltm: {e}")
-
             qna_response = await provider.text_chat(**req.__dict__)
 
             logger.error(f"ANSWER: {qna_response.completion_text}")
@@ -109,29 +102,6 @@ class QNA(Star):
                 yield event.plain_result(answer)
 
             await self.bot.after_llm_req(event)
-
-            # contexts = req.contexts
-            # new_record = {
-            #     "role": "user",
-            #     "content": req.prompt
-            # }
-            # contexts.append(new_record)
-            # contexts.append({
-            #     "role": "assistant",
-            #     "content": qna_response.completion_text
-            # })
-            # contexts_to_save = list(filter(lambda item: '_no_save' not in item, contexts))
-            #
-            # await self.context.conversation_manager.update_conversation(
-            #     event.unified_msg_origin,
-            #     conversation_id,
-            #     contexts_to_save
-            # )
-            # await Metric.upload(
-            #     llm_tick=1,
-            #     model_name=provider.get_model(),
-            #     provider_type=provider.meta().type
-            # )
 
         except Exception as e:
             logger.error(f"在调用LLM回复时报错: {e}")
