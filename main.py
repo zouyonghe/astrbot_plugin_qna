@@ -171,13 +171,14 @@ class QNA(Star):
         logger.error(f"event.message_obj.message_str: {event.message_obj.message_str}")
         if event.message_str.startswith(tuple(astrbot_config['wake_prefix'])):
             return
-        if event.message_str.endswith(astrbot_config['provider_settings']['wake_prefix']):
+        if event.message_str.startswith(astrbot_config['provider_settings']['wake_prefix']):
             return
 
         # 遍历消息，匹配关键词
         for comp in event.get_messages():
             if isinstance(comp, BaseMessageComponent):
                 message = comp.toString().strip()
+                logger.error(f"message: {message}")
                 if re.search(self.question_pattern, message):
                     async for resp in self._llm_check_and_answer(event, message):
                         yield resp
