@@ -56,17 +56,16 @@ class QNA(Star):
 
         try:
             req = ProviderRequest(prompt=qna_prompt, image_urls=[])
+            req.session_id = event.session_id
 
             conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
-
             if not conversation_id:
                 conversation_id = await self.context.conversation_manager.new_conversation(event.unified_msg_origin)
 
-            req.session_id = event.session_id
             conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
             req.conversation = conversation
             req.contexts = json.loads(conversation.history)
-            req.system_prompt = self.context.provider_manager.personas[int(Conversation.persona_id)].get("prompt", "")
+            req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
 
             qna_response = await provider.text_chat(**req.__dict__)
 
