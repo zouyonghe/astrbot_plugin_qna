@@ -122,7 +122,7 @@ class QNA(Star):
         if not self.question_pattern or not self._in_qna_group_list(event):
             logger.error("HERE 2")
             return
-
+        logger.error("HERE 3")
         # 遍历消息，匹配关键词
         for comp in event.get_messages():
             if isinstance(comp, BaseMessageComponent):
