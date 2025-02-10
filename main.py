@@ -21,6 +21,8 @@ class QNA(Star):
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
                 self.ltm = LongTermMemory(self.context.get_config()['provider_ltm_settings'], self.context)
+                logger.error(f"image_caption{self.ltm.image_caption}")
+                self.ltm.image_caption = None
             except BaseException as e:
                 logger.error(f"聊天增强 err: {e}")
 
@@ -68,7 +70,7 @@ class QNA(Star):
             f"3. 如果内容提供的信息较为明确并能够依据该信息作答，则基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
             f"4. 基于以上信息，请尽量对能够回答的问题作答。\n"
             f"5. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
-            f"内容:{message}"
+            f"内容:{message}\n\n"
         )
 
         try:
