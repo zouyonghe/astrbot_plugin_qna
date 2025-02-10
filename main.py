@@ -16,7 +16,7 @@ class QNA(Star):
         super().__init__(context)
         self.config = config
         self.ltm = None
-        self.main = super().context.get_registered_star(star_name="astrbot").star_cls
+        self.main = self.context.get_registered_star(star_name="astrbot").star_cls
 
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
