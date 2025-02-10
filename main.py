@@ -21,12 +21,12 @@ class QNA(Star):
 
         if question_keyword_list:
             self.question_pattern = r"(?i)(" + "|".join(map(re.escape, question_keyword_list)) + r")"
-            logger.error(f"自动问答关键词正则: {self.question_pattern}")
+            logger.debug(f"自动问答关键词正则: {self.question_pattern}")
 
     def _in_qna_group_list(self, event: AstrMessageEvent) -> bool:
         qna_group_list = self.config.get("qna_group_list", "").split(";")
         if str(event.get_group_id()) in qna_group_list:
-            logger.debug(f"群 {event.get_group_id()} 在自动回答名单内")
+            logger.error(f"群 {event.get_group_id()} 在自动回答名单内")
             return True
         return False
 
@@ -119,6 +119,7 @@ class QNA(Star):
                 message = comp.toString().strip()
                 if re.search(self.question_pattern, message):
                     try:
+                        logger.error(f"message: {message}")
                         yield self._llm_check_and_answer(event, message)
                     except Exception as e:
                         # 记录错误信息，确保出现异常时不影响其他消息的处理
