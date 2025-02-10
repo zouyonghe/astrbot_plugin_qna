@@ -70,6 +70,7 @@ class QNA(Star):
                 system_prompt=req.system_prompt,
                 contexts=req.contexts
             )
+            logger.error(f"answer {qna_response.completion_text}")
             if qna_response and qna_response.completion_text:
                 answer = qna_response.completion_text
                 if answer.strip() == "NULL":
