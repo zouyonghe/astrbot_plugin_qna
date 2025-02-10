@@ -118,10 +118,11 @@ class QNA(Star):
         # 判定是否启用自动回复
         if not self.config.get("enable_qna", False):
             return
-
+        logger.error("here 1")
         # 如果没有配置关键词或启用群组列表，直接返回
         if not self.question_pattern or not self._in_qna_group_list(event):
             return
+        logger.error("here 2")
 
         # 遍历消息，匹配关键词
         for comp in event.get_messages():
