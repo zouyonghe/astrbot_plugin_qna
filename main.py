@@ -5,6 +5,7 @@ import re
 from astrbot.api.all import *
 from astrbot.core.provider.entites import ProviderRequest
 from packages.astrbot.long_term_memory import LongTermMemory
+from packages.astrbot.main import Main
 
 logger = logging.getLogger("astrbot")
 
@@ -43,6 +44,8 @@ class QNA(Star):
     def _load_star(self):
         if self.main is None:
             self.main = self.context.get_registered_star(star_name="astrbot").star_cls
+            if isinstance(self.main, Main):
+                self.main = Main(self.context)
 
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
