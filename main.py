@@ -21,7 +21,6 @@ class QNA(Star):
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
                 self.ltm = LongTermMemory(self.context.get_config()['provider_ltm_settings'], self.context)
-                self.ltm.image_caption = False
             except BaseException as e:
                 logger.error(f"聊天增强 err: {e}")
 
@@ -90,11 +89,8 @@ class QNA(Star):
 
             await self.bot.decorate_llm_req(event, req)
 
-            logger.error(f"REQUEST: {req}")
-
             qna_response = await provider.text_chat(**req.__dict__)
 
-            logger.error(f"ANSWER: {qna_response.completion_text}")
             if qna_response and qna_response.completion_text:
                 answer = qna_response.completion_text
                 if answer.strip() == "NULL":
