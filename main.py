@@ -26,7 +26,7 @@ class QNA(Star):
     def _in_qna_group_list(self, event: AstrMessageEvent) -> bool:
         qna_group_list = self.config.get("qna_group_list", "").split(";")
         if str(event.get_group_id()) in qna_group_list:
-            logger.error(f"群 {event.get_group_id()} 在自动回答名单内")
+            logger.debug(f"群 {event.get_group_id()} 在自动回答名单内")
             return True
         return False
 
@@ -128,7 +128,8 @@ class QNA(Star):
             if isinstance(comp, BaseMessageComponent):
                 message = comp.toString().strip()
                 if re.search(self.question_pattern, message):
-                    yield self._llm_check_and_answer(event, message)
+                    async for resp in self._llm_check_and_answer(event, message):
+                        yield resp
 
 
 
