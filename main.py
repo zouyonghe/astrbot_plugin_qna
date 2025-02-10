@@ -130,7 +130,7 @@ class QNA(Star):
                 if re.search(self.question_pattern, message):
                     try:
                         logger.error(f"message: {message}")
-                        self._llm_check_and_answer(event, message)
+                        yield self._llm_check_and_answer(event, message)
                     except Exception as e:
                         # 记录错误信息，确保出现异常时不影响其他消息的处理
                         logger.error(f"调用LLM检测并回答问题时发生异常，异常信息: {e}")
