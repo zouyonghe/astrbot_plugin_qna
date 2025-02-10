@@ -46,12 +46,11 @@ class QNA(Star):
         """调用LLM对有答案的问题进行回答"""
         qna_prompt = (
             f"回复要求：\n"
-            f"1. 如果内容不包含提问信息，回复 `NULL`。\n"
-            f"2. 如果内容包含提问关键字，如“什么”“怎么”等，但不具备上下文，无法直接解答，回复 `NULL`。\n"
-            f"3. 如果输入是明确的且可解答的疑问句，则基于系统提示词生成合适的回答。\n"
-            f"4. 请根据上述规则判断，尽量对能够回答的问题作答。\n"
-            f"5. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
-            f"提问内容:{message}"
+            f"1. 如果内容完全不包含提问信息时，或内容包含“什么”“怎么”等提问词，但不具备上下文就无法直接解答时，回复 `NULL`。\n"
+            f"2. 如果内容提供的信息较为明确并能够依据其提问信息作答，则基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
+            f"3. 基于以上信息，请尽量对能够回答的问题作答。\n"
+            f"4. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
+            f"内容:{message}"
         )
 
         try:
@@ -66,7 +65,7 @@ class QNA(Star):
             req.conversation = conversation
             req.contexts = json.loads(conversation.history)
             req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
-            logger.error(f"persona: {req.system_prompt}")
+
             qna_response = await provider.text_chat(**req.__dict__)
 
             logger.error(f"answer {qna_response.completion_text}")
