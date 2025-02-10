@@ -75,6 +75,7 @@ class QNA(Star):
             req = ProviderRequest(prompt=qna_prompt, image_urls=[])
             await self.bot.decorate_llm_req(event, req)
             logger.error(f"prompt_prefix: {self.bot.prompt_prefix}")
+            logger.error(f"prompt_prefix_1: {self.context.get_config()['provider_settings']['prompt_prefix']}")
             logger.error(f"request: {req}")
             # req.session_id = event.session_id
             #
