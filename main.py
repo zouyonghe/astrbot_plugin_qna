@@ -30,16 +30,17 @@ class QNA(Star):
             return True
         return False
 
-    async def _llm_check_and_answer(self, event: AstrMessageEvent, question: str):
+    async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
         """调用 LLM 判断并回复，只有在信息字数 < 50 并且满足概率要求时才执行"""
         llm_probability = float(self.config.get("llm_answer_probability", 0.1))
-        if len(question) > 50 or random.random() > llm_probability:
+        if len(message) > 50 or random.random() > llm_probability:
             return
-
+        logger.error("HERE called!")
         provider = self.context.get_using_provider()
         if not provider:
             logger.warning("No available LLM provider")
             return
+        logger.error("HERE 2 called!")
 
         """调用LLM对有答案的问题进行回答"""
         qna_prompt = (
@@ -49,12 +50,11 @@ class QNA(Star):
             f"3. 如果输入是明确的且可解答的疑问句，则基于系统提示词生成合适的回答。\n"
             f"4. 请根据上述规则判断，尽量对能够回答的问题作答。\n"
             f"5. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
-            f"提问内容:{question}"
+            f"提问内容:{message}"
         )
 
         try:
-            req = ProviderRequest(prompt="", image_urls=[])
-            req.prompt = qna_prompt
+            req = ProviderRequest(prompt=qna_prompt, image_urls=[])
 
             conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
             if not conversation_id:
@@ -64,12 +64,16 @@ class QNA(Star):
             req.conversation = conversation
             req.contexts = json.loads(conversation.history)
 
-            qna_response = await provider.text_chat(
-                prompt=qna_prompt,
-                session_id=str(event.get_sender_id()),
-                system_prompt=req.system_prompt,
-                contexts=req.contexts
-            )
+            logger.error(f"request: {req.__dict__}")
+
+            # qna_response = await provider.text_chat(
+            #     prompt=qna_prompt,
+            #     session_id=str(event.get_sender_id()),
+            #     system_prompt=req.system_prompt,
+            #     contexts=req.contexts
+            # )
+            qna_response = await provider.text_chat(**req.__dict__)
+
             logger.error(f"answer {qna_response.completion_text}")
             if qna_response and qna_response.completion_text:
                 answer = qna_response.completion_text
