@@ -5,6 +5,7 @@ import re
 from astrbot.api.all import *
 from astrbot.core.provider.entites import ProviderRequest
 from astrbot.core.utils.metrics import Metric
+from astrbot.core.db.po import Conversation
 
 logger = logging.getLogger("astrbot")
 
@@ -57,26 +58,16 @@ class QNA(Star):
             req = ProviderRequest(prompt=qna_prompt, image_urls=[])
 
             conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
-            logger.error(f"conversation_id: {conversation_id}")
-            logger.error(f"sender_id: {event.get_sender_id()}")
-            logger.error(f"system_prompt: {qna_prompt}")
-            logger.error(f"persona: {self.context.provider_manager.personas[0]}")
 
             if not conversation_id:
                 conversation_id = await self.context.conversation_manager.new_conversation(event.unified_msg_origin)
-            req.session_id = conversation_id
+
+            req.session_id = event.session_id
             conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
             req.conversation = conversation
             req.contexts = json.loads(conversation.history)
+            req.system_prompt = self.context.provider_manager.personas[int(Conversation.persona_id)].get("prompt", "")
 
-            logger.error(f"request: {req.__dict__}")
-
-            # qna_response = await provider.text_chat(
-            #     prompt=qna_prompt,
-            #     session_id=str(event.get_sender_id()),
-            #     system_prompt=req.system_prompt,
-            #     contexts=req.contexts
-            # )
             qna_response = await provider.text_chat(**req.__dict__)
 
             logger.error(f"answer {qna_response.completion_text}")
