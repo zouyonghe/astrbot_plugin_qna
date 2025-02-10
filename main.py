@@ -21,7 +21,6 @@ class QNA(Star):
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
                 self.ltm = LongTermMemory(self.context.get_config()['provider_ltm_settings'], self.context)
-                logger.error(f"LongTermMemory!{self.context.get_config()['provider_ltm_settings']}")
             except BaseException as e:
                 logger.error(f"聊天增强 err: {e}")
 
@@ -44,9 +43,9 @@ class QNA(Star):
 
     def _load_star(self):
         if self.main is None:
-            self.main = self.context.get_registered_star(star_name="astrbot").star_cls
-            if isinstance(self.main, Main):
-                self.main = Main(self.context)
+            #self.main = self.context.get_registered_star(star_name="astrbot").star_cls
+            self.main = Main(self.context)
+
 
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
