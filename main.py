@@ -5,6 +5,8 @@ import re
 from astrbot.api.all import *
 from astrbot.core.provider.entites import ProviderRequest
 from astrbot.core.utils.metrics import Metric
+from packages.astrbot.long_term_memory import LongTermMemory
+from packages.astrbot.main import Main
 
 logger = logging.getLogger("astrbot")
 
@@ -14,6 +16,16 @@ class QNA(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config
+        self.ltm = None
+        self.main = Main()
+
+        if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
+            try:
+                self.ltm = LongTermMemory(self.context.get_config()['provider_ltm_settings'], self.context)
+            except BaseException as e:
+                logger.error(f"聊天增强 err: {e}")
+
+
 
         # 读取关键词列表
         question_keyword_list = self.config.get("question_keyword_list", "").split(";")
@@ -46,57 +58,69 @@ class QNA(Star):
         qna_prompt = (
             f"回复要求：\n"
             f"1. 如果内容完全不包含提问信息时，或内容包含“什么”“怎么”等提问词，但不具备上下文就无法直接解答时，回复 `NULL`。\n"
-            f"2. 如果内容提供的信息较为明确并能够依据其提问信息作答，则基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
-            f"3. 基于以上信息，请尽量对能够回答的问题作答。\n"
-            f"4. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
+            f"2. 如果内容包含提问信息，但不是知识性问题，依旧回复`NULL`。"
+            f"3. 如果内容提供的信息较为明确并能够依据该信息作答，则基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
+            f"4. 基于以上信息，请尽量对能够回答的问题作答。\n"
+            f"5. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
             f"内容:{message}"
         )
 
         try:
             req = ProviderRequest(prompt=qna_prompt, image_urls=[])
-            req.session_id = event.session_id
+            await self.main.decorate_llm_req(event, req)
 
-            conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
-            if not conversation_id:
-                conversation_id = await self.context.conversation_manager.new_conversation(event.unified_msg_origin)
+            logger.error(f"request: {req}")
+            # req.session_id = event.session_id
+            #
+            # conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
+            # if not conversation_id:
+            #     conversation_id = await self.context.conversation_manager.new_conversation(event.unified_msg_origin)
+            #
+            # conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
+            # req.conversation = conversation
+            # req.contexts = json.loads(conversation.history)
+            # req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
+            # req.func_tool = self.context.get_llm_tool_manager()
 
-            conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
-            req.conversation = conversation
-            req.contexts = json.loads(conversation.history)
-            req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
-            req.func_tool = self.context.get_llm_tool_manager()
+            if self.ltm:
+                try:
+                    await self.ltm.on_req_llm(event, req)
+                except BaseException as e:
+                    logger.error(f"ltm: {e}")
 
             qna_response = await provider.text_chat(**req.__dict__)
 
-            logger.error(f"answer {qna_response.completion_text}")
+            logger.error(f"ANSWER: {qna_response.completion_text}")
             if qna_response and qna_response.completion_text:
                 answer = qna_response.completion_text
                 if answer.strip() == "NULL":
                     return
                 yield event.plain_result(answer)
 
-            contexts = req.contexts
-            new_record = {
-                "role": "user",
-                "content": req.prompt
-            }
-            contexts.append(new_record)
-            contexts.append({
-                "role": "assistant",
-                "content": qna_response.completion_text
-            })
-            contexts_to_save = list(filter(lambda item: '_no_save' not in item, contexts))
+            await self.main.after_llm_req(event)
 
-            await self.context.conversation_manager.update_conversation(
-                event.unified_msg_origin,
-                conversation_id,
-                contexts_to_save
-            )
-            await Metric.upload(
-                llm_tick=1,
-                model_name=provider.get_model(),
-                provider_type=provider.meta().type
-            )
+            # contexts = req.contexts
+            # new_record = {
+            #     "role": "user",
+            #     "content": req.prompt
+            # }
+            # contexts.append(new_record)
+            # contexts.append({
+            #     "role": "assistant",
+            #     "content": qna_response.completion_text
+            # })
+            # contexts_to_save = list(filter(lambda item: '_no_save' not in item, contexts))
+            #
+            # await self.context.conversation_manager.update_conversation(
+            #     event.unified_msg_origin,
+            #     conversation_id,
+            #     contexts_to_save
+            # )
+            # await Metric.upload(
+            #     llm_tick=1,
+            #     model_name=provider.get_model(),
+            #     provider_type=provider.meta().type
+            # )
 
         except Exception as e:
             logger.error(f"在调用LLM回复时报错: {e}")
