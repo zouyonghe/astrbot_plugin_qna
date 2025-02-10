@@ -1,7 +1,6 @@
 import logging
 import random
 import re
-import astrbot.api.star as star
 
 from astrbot.api.all import *
 from astrbot.core.provider.entites import ProviderRequest
@@ -16,7 +15,7 @@ class QNA(Star):
         super().__init__(context)
         self.config = config
         self.ltm = None
-        self.main = self.context.get_registered_star(star_name="astrbot").star_cls
+        self.main = None
 
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
@@ -40,6 +39,11 @@ class QNA(Star):
             logger.debug(f"群 {event.get_group_id()} 在自动回答名单内")
             return True
         return False
+
+    def _load_star(self):
+        if self.main is None:
+            self.main = self.context.get_registered_star(star_name="astrbot").star_cls
+
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
 
@@ -124,9 +128,13 @@ class QNA(Star):
         except Exception as e:
             logger.error(f"在调用LLM回复时报错: {e}")
 
+
     @event_message_type(EventMessageType.GROUP_MESSAGE)
     async def auto_answer(self, event: AstrMessageEvent):
         """自动回答群消息中的问题"""
+        # 获取main实例
+        self._load_star()
+
         # 判定是否启用自动回复
         if not self.config.get("enable_qna", False):
             return
