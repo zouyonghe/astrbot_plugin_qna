@@ -35,7 +35,10 @@ class QNA(Star):
             logger.debug(f"自动问答关键词正则: {self.question_pattern}")
 
     def _in_qna_group_list(self, event: AstrMessageEvent) -> bool:
-        qna_group_list = [group.strip() for group in self.config.get("qna_group_list", "").split(";")]
+        qna_group_list = [
+            group.strip() for group in self.config.get("qna_group_list", "").split(";")
+            if group.strip() and not group.startswith("#")
+        ]
         if str(event.get_group_id()) in qna_group_list:
             logger.debug(f"群 {event.get_group_id()} 在自动回答名单内")
             return True
@@ -66,11 +69,12 @@ class QNA(Star):
             f"2. 如果内容包含提问信息，但不是知识性问题，依旧回复`NULL`。\n"
             f"3. 如果内容提供的信息较为明确清晰，则依据提问内容完整作答。\n"
             f"4. 如何内容提供的信息不够明确，但基本可以了解提问者的意图，则给出建议性、询问性作答，给出简略的推测并进一步询问问题细节。\n"
-            f"5. 基于对话历史分析判断提问者意图，进一步理解问题。\n"
-            f"6. 对于提问内容清晰，但无法明确回答的问题，可以通过函数调用通过网络搜索答案。\n"
-            f"7. 在作答时基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
-            f"8. 基于以上信息，请尽量对更多的问题作答。\n"
-            f"9. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
+            f"5. 有些内容表达的只是话者的感叹和想法等，在没有明确提问的情况请不要作答。\n"
+            f"6. 基于对话历史分析判断提问者意图，进一步理解问题。\n"
+            f"7. 对于提问内容清晰，但无法明确回答的问题，可以通过函数调用通过网络搜索答案。\n"
+            f"8. 在作答时基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
+            f"9. 基于以上信息进行作答，尽量提供能带来更多信息和帮助的回答。\n"
+            f"10. 如果回复`NULL`，则不要附加任何额外解释信息。\n\n"
             f"内容:{message}"
         )
 
