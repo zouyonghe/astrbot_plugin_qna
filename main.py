@@ -169,7 +169,7 @@ class QNA(Star):
         # 检测到两类唤醒词均交给原始流程处理
         logger.error(f"event.message_str: {event.message_str}")
         logger.error(f"event.message_obj.message_str: {event.message_obj.message_str}")
-        if event.message_str.startswith(astrbot_config['wake_prefix']):
+        if event.message_str.startswith(tuple(astrbot_config['wake_prefix'])):
             return
         if event.message_str.endswith(astrbot_config['provider_settings']['wake_prefix']):
             return
