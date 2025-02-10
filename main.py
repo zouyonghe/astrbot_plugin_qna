@@ -13,11 +13,11 @@ logger = logging.getLogger("astrbot")
 
 @register("QNA", "buding", "一个用于自动回答群聊问题的插件", "0.0.1", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
-    def __init__(self, context: Context, config: dict):
+    def __init__(self, context: Context, config: dict, main: Main):
         super().__init__(context)
         self.config = config
         self.ltm = None
-        self.main = Main()
+        self.main = main
 
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
