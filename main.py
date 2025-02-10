@@ -46,6 +46,7 @@ class QNA(Star):
             main = self.context.get_registered_star(star_name="astrbot").star_cls
             if isinstance(main, Main):
                 logger.error("HERE")
+                self.bot = main
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
 
@@ -72,8 +73,8 @@ class QNA(Star):
 
         try:
             req = ProviderRequest(prompt=qna_prompt, image_urls=[])
-            await self.main.decorate_llm_req(event, req)
-            logger.error(f"prompt_prefix: {self.main.prompt_prefix}")
+            await self.bot.decorate_llm_req(event, req)
+            logger.error(f"prompt_prefix: {self.bot.prompt_prefix}")
             logger.error(f"request: {req}")
             # req.session_id = event.session_id
             #
@@ -102,7 +103,7 @@ class QNA(Star):
                     return
                 yield event.plain_result(answer)
 
-            await self.main.after_llm_req(event)
+            await self.bot.after_llm_req(event)
 
             # contexts = req.contexts
             # new_record = {
