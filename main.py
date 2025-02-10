@@ -5,7 +5,6 @@ import re
 from astrbot.api.all import *
 from astrbot.core.provider.entites import ProviderRequest
 from astrbot.core.utils.metrics import Metric
-from astrbot.core.db.po import Conversation
 
 logger = logging.getLogger("astrbot")
 
@@ -65,6 +64,7 @@ class QNA(Star):
             req.conversation = conversation
             req.contexts = json.loads(conversation.history)
             req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
+            req.func_tool = self.context.get_llm_tool_manager()
 
             qna_response = await provider.text_chat(**req.__dict__)
 
