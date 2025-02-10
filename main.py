@@ -40,7 +40,7 @@ class QNA(Star):
             if group.strip() and not group.startswith("#")
         ]
         if str(event.get_group_id()) in qna_group_list:
-            logger.debug(f"群 {event.get_group_id()} 在自动回答名单内")
+            logger.error(f"群 {event.get_group_id()} 在自动回答名单内")
             return True
         return False
 
@@ -92,7 +92,7 @@ class QNA(Star):
             req.func_tool = self.context.get_llm_tool_manager()
 
             await self.bot.decorate_llm_req(event, req)
-
+            logger.error("REQUEST: ", req)
             qna_response = await provider.text_chat(**req.__dict__)
 
             if qna_response and qna_response.completion_text:
@@ -127,6 +127,7 @@ class QNA(Star):
             if isinstance(comp, BaseMessageComponent):
                 message = comp.toString().strip()
                 if re.search(self.question_pattern, message):
+                    logger.error("MESSAGE: " + message)
                     async for resp in self._llm_check_and_answer(event, message):
                         yield resp
 
