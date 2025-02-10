@@ -31,6 +31,8 @@ class QNA(Star):
         return False
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
+        logger.error("HERE0 called!")
+
         """调用 LLM 判断并回复，只有在信息字数 < 50 并且满足概率要求时才执行"""
         llm_probability = float(self.config.get("llm_answer_probability", 0.1))
         if len(message) > 50 or random.random() > llm_probability:
@@ -57,6 +59,9 @@ class QNA(Star):
             req = ProviderRequest(prompt=qna_prompt, image_urls=[])
 
             conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
+            logger.error(f"conversation_id: {conversation_id}")
+            logger.error(f"sender_id: {event.get_sender_id()}")
+
             if not conversation_id:
                 conversation_id = await self.context.conversation_manager.new_conversation(event.unified_msg_origin)
             req.session_id = conversation_id

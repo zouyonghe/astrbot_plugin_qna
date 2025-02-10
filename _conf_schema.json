@@ -14,7 +14,7 @@
     "question_keyword_list": {
         "type": "string",
         "description": "本地识别关键字",
-        "default": "如何;怎样;什么;怎么;谁;哪;何;吗",
+        "default": "如何;怎样;什么;怎么;谁;哪;何;吗;是不是;对不对",
         "hint": "用于本地检测问题的关键字，使用英文分号分隔"
     },
     "llm_answer_probability": {
