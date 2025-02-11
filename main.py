@@ -13,7 +13,7 @@ from packages.astrbot.main import Main
 logger = logging.getLogger("astrbot")
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.0.0", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.0.1", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -27,7 +27,7 @@ class QNA(Star):
             try:
                 self.ltm = LongTermMemory(self.context.get_config()['provider_ltm_settings'], self.context)
             except BaseException as e:
-                logger.error(f"聊天增强 err: {e}")
+                logger.error(f"聊天记忆增强发生异常: {e}")
 
         # 读取关键词列表
         question_keyword_list = self.config.get("question_keyword_list", "").split(";")
@@ -97,13 +97,13 @@ class QNA(Star):
 
             await self.bot.decorate_llm_req(event, req)
 
-            logger.error(f"REQUEST: {str(req)}")
+            #logger.debug(f"REQUEST: {str(req)}")
 
             qna_response = await provider.text_chat(**req.__dict__)
 
             if qna_response.role == 'assistant':
                 answer = qna_response.completion_text
-                logger.error(f"ANSWER_1: {str(answer)}")
+                logger.debug(f"ANSWER_1: {str(answer)}")
                 if answer.strip().startswith("NULL"):
                     return
                 yield event.plain_result(answer)
@@ -129,7 +129,7 @@ class QNA(Star):
                         function_calling_result[func_tool_name] = "When calling the function, an error occurred: " + str(e)
 
                 if function_calling_result:
-                    logger.error(f"RESULT: {str(function_calling_result)}")
+                    #logger.debug(f"RESULT: {str(function_calling_result)}")
                     extra_prompt = "\n\nSystem executed some external tools for this task and here are the results:\n"
                     for tool_name, tool_result in function_calling_result.items():
                         extra_prompt += f"Tool: {tool_name}\nTool Result: {tool_result}\n"
@@ -137,11 +137,13 @@ class QNA(Star):
                     extra_prompt = "\n\nSystem executed some external tools for this task but NO results found.\n"
 
                 req.prompt += extra_prompt
+                #logger.debug(f"REQUEST_2: {str(req)}")
+
                 qna_response = await provider.text_chat(**req.__dict__)
 
                 if qna_response.role == 'assistant':
                     answer = qna_response.completion_text
-                    logger.error(f"ANSWER_2x: {str(answer)}")
+                    #logger.debug(f"ANSWER_2: {str(answer)}")
                     if answer.strip().startswith("NULL"):
                         return
                     yield event.plain_result(answer)
