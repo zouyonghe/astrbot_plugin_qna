@@ -92,6 +92,8 @@ class QNA(Star):
             req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
             req.func_tool = self.context.get_llm_tool_manager()
 
+            event.set_extra("provider_request", req)
+
             if isinstance(req.contexts, str):
                 req.contexts = json.loads(req.contexts)
 
@@ -181,15 +183,6 @@ class QNA(Star):
         if re.search(self.question_pattern, event.message_str):
             async for resp in self._llm_check_and_answer(event, event.message_str):
                 yield resp
-
-        # # 遍历消息，匹配关键词
-        # for comp in event.get_messages():
-        #     if isinstance(comp, BaseMessageComponent):
-        #         message = comp.toString().strip()
-        #         logger.error(f"message: {message}")
-        #         if re.search(self.question_pattern, message):
-        #             async for resp in self._llm_check_and_answer(event, message):
-        #                 yield resp
 
     async def _call_handler(
             self,
