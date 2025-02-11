@@ -20,6 +20,8 @@ class QNA(Star):
         self.config = config
         self.ltm = None
         self.bot = None
+        self.bot_wake_prefix = tuple(p for p in astrbot_config['wake_prefix'] if p)
+        self.LLM_wake_prefix = astrbot_config['provider_settings']['wake_prefix']
 
         if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
             try:
@@ -167,11 +169,11 @@ class QNA(Star):
             return
 
         # 检测到两类唤醒词均交给原始流程处理
-        logger.error(f"event.message_str: {event.message_str}")
-        if event.message_str.startswith(tuple(astrbot_config['wake_prefix'])):
+        if self.bot_wake_prefix and event.message_str.startswith(self.bot_wake_prefix):
             logger.error("HERE1")
             return
-        if event.message_str.startswith(astrbot_config['provider_settings']['wake_prefix']):
+
+        if self.LLM_wake_prefix and event.message_str.startswith(self.LLM_wake_prefix):
             logger.error("HERE2")
             return
         logger.error("HERE3")
