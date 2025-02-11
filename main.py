@@ -168,11 +168,16 @@ class QNA(Star):
 
         # 检测到两类唤醒词均交给原始流程处理
         logger.error(f"event.message_str: {event.message_str}")
-        logger.error(f"event.message_obj.message_str: {event.message_obj.message_str}")
         if event.message_str.startswith(tuple(astrbot_config['wake_prefix'])):
+            logger.error("HERE1")
             return
         if event.message_str.startswith(astrbot_config['provider_settings']['wake_prefix']):
+            logger.error("HERE2")
             return
+        logger.error("HERE3")
+
+        if re.search(self.question_pattern, event.message_str):
+            logger.error("MESSAGE found!")
 
         # 遍历消息，匹配关键词
         for comp in event.get_messages():
