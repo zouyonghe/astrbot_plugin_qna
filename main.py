@@ -129,6 +129,7 @@ class QNA(Star):
                         function_calling_result[func_tool_name] = "When calling the function, an error occurred: " + str(e)
 
                 if function_calling_result:
+                    logger.error(f"RESULT: {str(function_calling_result)}")
                     extra_prompt = "\n\nSystem executed some external tools for this task and here are the results:\n"
                     for tool_name, tool_result in function_calling_result.items():
                         extra_prompt += f"Tool: {tool_name}\nTool Result: {tool_result}\n"
@@ -170,25 +171,23 @@ class QNA(Star):
 
         # 检测到两类唤醒词均交给原始流程处理
         if self.bot_wake_prefix and event.message_str.startswith(self.bot_wake_prefix):
-            logger.error("HERE1")
             return
 
         if self.LLM_wake_prefix and event.message_str.startswith(self.LLM_wake_prefix):
-            logger.error("HERE2")
             return
-        logger.error("HERE3")
 
         if re.search(self.question_pattern, event.message_str):
-            logger.error("MESSAGE found!")
+            async for resp in self._llm_check_and_answer(event, event.message_str):
+                yield resp
 
-        # 遍历消息，匹配关键词
-        for comp in event.get_messages():
-            if isinstance(comp, BaseMessageComponent):
-                message = comp.toString().strip()
-                logger.error(f"message: {message}")
-                if re.search(self.question_pattern, message):
-                    async for resp in self._llm_check_and_answer(event, message):
-                        yield resp
+        # # 遍历消息，匹配关键词
+        # for comp in event.get_messages():
+        #     if isinstance(comp, BaseMessageComponent):
+        #         message = comp.toString().strip()
+        #         logger.error(f"message: {message}")
+        #         if re.search(self.question_pattern, message):
+        #             async for resp in self._llm_check_and_answer(event, message):
+        #                 yield resp
 
     async def _call_handler(
             self,
