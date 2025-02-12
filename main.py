@@ -1,33 +1,20 @@
-import inspect
 import logging
 import random
 import re
-from typing import AsyncGenerator, Awaitable
 
 from astrbot.api.all import *
 from astrbot.core import astrbot_config
-from astrbot.core.provider.entites import ProviderRequest
-from packages.astrbot.long_term_memory import LongTermMemory
-from packages.astrbot.main import Main
 
 logger = logging.getLogger("astrbot")
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.0", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.1", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config
-        # self.ltm = None
-        # self.bot = None
         self.bot_wake_prefix = tuple(p for p in astrbot_config['wake_prefix'] if p)
         self.LLM_wake_prefix = astrbot_config['provider_settings']['wake_prefix']
-        #
-        # if self.context.get_config()['provider_ltm_settings']['group_icl_enable'] or self.context.get_config()['provider_ltm_settings']['active_reply']['enable']:
-        #     try:
-        #         self.ltm = LongTermMemory(self.context.get_config()['provider_ltm_settings'], self.context)
-        #     except BaseException as e:
-        #         logger.error(f"聊天记忆增强发生异常: {e}")
 
         # 读取关键词列表
         question_keyword_list = self.config.get("question_keyword_list", "").split(";")
@@ -36,26 +23,27 @@ class QNA(Star):
         if question_keyword_list:
             self.question_pattern = r"(?i)(" + "|".join(map(re.escape, question_keyword_list)) + r")"
 
-    def _in_qna_group_list(self, event: AstrMessageEvent) -> bool:
-        qna_group_list = [
+    def _in_qna_group_list(self, group_id: str) -> bool:
+        qna_group_list = set(
             group.strip() for group in self.config.get("qna_group_list", "").split(";")
-            if group.strip() and not group.startswith("#")
-        ]
-        if str(event.get_group_id()) in qna_group_list:
-            return True
-        return False
+        )
+        return group_id in qna_group_list
 
-    # def _load_star(self):
-    #     if self.bot is None:
-    #         main = self.context.get_registered_star(star_name="astrbot").star_cls
-    #         if isinstance(main, Main):
-    #             self.bot = main
+    def _add_to_list(self, group_id: str):
+        qna_group_list = set(
+            group.strip() for group in self.config.get("qna_group_list", "").split(";") if group.strip()
+        )
+        qna_group_list.add(group_id)
+        self.config["white_list"] = ";".join(sorted(qna_group_list))
+
+    def _remove_from_list(self, group_id: str):
+        qna_group_list = set(
+            group.strip() for group in self.config.get("qna_group_list", "").split(";") if group.strip()
+        )
+        qna_group_list.discard(group_id)
+        self.config["qna_group_list"] = ";".join(sorted(qna_group_list))
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
-        # provider = self.context.get_using_provider()
-        # if not provider:
-        #     logger.warning("No available LLM provider")
-        #     return
 
         """调用LLM对有答案的问题进行回答"""
         qna_prompt = (
@@ -76,9 +64,6 @@ class QNA(Star):
         conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
         conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
 
-        logger.error(f"conversation_id: {conversation_id}")
-        logger.error(f"session_id: {event.session_id}")
-
         yield event.request_llm(
             prompt = qna_prompt,
             func_tool_manager = self.context.get_llm_tool_manager(),
@@ -89,98 +74,17 @@ class QNA(Star):
             conversation=conversation,
         )
 
-        # try:
-        #     req = ProviderRequest(prompt=qna_prompt, image_urls=[])
-        #     req.session_id = event.session_id
-        #
-        #     conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
-        #     if not conversation_id:
-        #         conversation_id = await self.context.conversation_manager.new_conversation(event.unified_msg_origin)
-        #     conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
-        #     req.conversation = conversatio n
-        #     req.contexts = json.loads(conversation.history)
-        #     req.system_prompt = self.context.provider_manager.selected_default_persona.get("prompt", "")
-        #     req.func_tool = self.context.get_llm_tool_manager()
-        #
-        #     event.set_extra("provider_request", req)
-        #
-        #     if isinstance(req.contexts, str):
-        #         req.contexts = json.loads(req.contexts)
-        #
-        #     await self.bot.decorate_llm_req(event, req)
-        #
-        #     #logger.debug(f"REQUEST: {str(req)}")
-        #
-        #     qna_response = await provider.text_chat(**req.__dict__)
-        #
-        #     if qna_response.role == 'assistant':
-        #         answer = qna_response.completion_text
-        #         logger.debug(f"ANSWER_1: {str(answer)}")
-        #         if answer.strip().startswith("NULL"):
-        #             return
-        #         yield event.plain_result(answer)
-        #     elif qna_response.role == 'err':
-        #         event.plain_result(f"AstrBot 请求失败。\n错误信息: {qna_response.completion_text}")
-        #     elif qna_response.role == 'tool':
-        #         # function calling
-        #         function_calling_result = {}
-        #         for func_tool_name, func_tool_args in zip(qna_response.tools_call_name, qna_response.tools_call_args):
-        #             func_tool = req.func_tool.get_func(func_tool_name)
-        #             logger.info(f"调用工具函数：{func_tool_name}，参数：{func_tool_args}")
-        #             try:
-        #                 # 尝试调用工具函数
-        #                 wrapper = self._call_handler(event, func_tool.handler, **func_tool_args)
-        #                 async for resp in wrapper:
-        #                     if resp is not None:
-        #                         function_calling_result[func_tool_name] = resp
-        #                     else:
-        #                         yield
-        #                 event.clear_result()  # 清除上一个 handler 的结果
-        #             except Exception as e:
-        #                 logger.error(f"LLM函数调用异常: {str(e)}")
-        #                 function_calling_result[func_tool_name] = "When calling the function, an error occurred: " + str(e)
-        #
-        #         if function_calling_result:
-        #             #logger.debug(f"RESULT: {str(function_calling_result)}")
-        #             extra_prompt = "\n\nSystem executed some external tools for this task and here are the results:\n"
-        #             for tool_name, tool_result in function_calling_result.items():
-        #                 extra_prompt += f"Tool: {tool_name}\nTool Result: {tool_result}\n"
-        #         else:
-        #             extra_prompt = "\n\nSystem executed some external tools for this task but NO results found.\n"
-        #
-        #         req.prompt += extra_prompt
-        #         #logger.debug(f"REQUEST_2: {str(req)}")
-        #
-        #         qna_response = await provider.text_chat(**req.__dict__)
-        #
-        #         if qna_response.role == 'assistant':
-        #             answer = qna_response.completion_text
-        #             #logger.debug(f"ANSWER_2: {str(answer)}")
-        #             if answer.strip().startswith("NULL"):
-        #                 return
-        #             yield event.plain_result(answer)
-        #         elif qna_response.role == 'err':
-        #             event.plain_result(f"AstrBot 请求失败。\n错误信息: {qna_response.completion_text}")
-        #         elif qna_response.role == 'tool':
-        #             logger.debug("QNA不支持循环函数调用")
-        #             return
-        #
-        #     await self.bot.after_llm_req(event)
-        # except Exception as e:
-        #     logger.error(f"在调用LLM回复时报错: {e}")
 
     @event_message_type(EventMessageType.GROUP_MESSAGE)
     async def auto_answer(self, event: AstrMessageEvent):
         """自动回答群消息中的问题"""
-        # 获取main实例
-        #self._load_star()
 
         # 判定是否启用自动回复
         if not self.config.get("enable_qna", False):
             return
 
         # 如果没有配置关键词或启用群组列表，直接返回
-        if not self.question_pattern or not self._in_qna_group_list(event):
+        if not self._in_qna_group_list(event.get_group_id()) or not self.question_pattern:
             return
 
         # 检测到两类唤醒词均交给原始流程处理
@@ -201,30 +105,93 @@ class QNA(Star):
         async for resp in self._llm_check_and_answer(event, event.message_str):
             yield resp
 
-    # async def _call_handler(
-    #         self,
-    #         event: AstrMessageEvent,
-    #         handler: Awaitable,
-    #         **params
-    # ) -> AsyncGenerator[None, None]:
-    #     '''调用 Handler。'''
-    #     # 判断 handler 是否是类方法（通过装饰器注册的没有 __self__ 属性）
-    #     ready_to_call = handler(event, **params)
-    #
-    #     if isinstance(ready_to_call, AsyncGenerator):
-    #         async for ret in ready_to_call:
-    #             # 如果处理函数是生成器，返回值只能是 MessageEventResult 或者 None（无返回值）
-    #             if isinstance(ret, (MessageEventResult, CommandResult)):
-    #                 event.set_result(ret)
-    #                 yield
-    #             else:
-    #                 yield ret
-    #     elif inspect.iscoroutine(ready_to_call):
-    #         # 如果只是一个 coroutine
-    #         ret = await ready_to_call
-    #         if isinstance(ret, (MessageEventResult, CommandResult)):
-    #             event.set_result(ret)
-    #             yield
-    #         else:
-    #             yield ret
 
+    @command_group("qna")
+    def qna(self):
+        pass
+    
+    @qna.command("enable")
+    async def enable_qna(self, event: AstrMessageEvent):
+        """开启自动解答"""
+        try:
+            if self.config.get("enable_qna", False):
+                yield event.plain_result("✅ 自动解答已经是开启状态了")
+                return
+
+            self.config["enable_qna"] = True
+            yield event.plain_result("📢 自动解答已开启")
+        except Exception as e:
+            logger.error(f"自动解答开启失败: {e}")
+            yield event.plain_result("❌ 自动解答开启失败，请检查控制台输出")
+
+    @qna.command("disable")
+    async def disable_qna(self, event: AstrMessageEvent):
+        """关闭自动解答"""
+        try:
+            if not self.config.get("enable_qna", False):
+                yield event.plain_result("✅ 自动解答已经是关闭状态")
+                return
+
+            self.config["enable_qna"] = False
+            yield event.plain_result("📢 自动解答已关闭")
+        except Exception as e:
+            logger.error(f"自动解答关闭失败: {e}")
+            yield event.plain_result("❌ 自动解答关闭失败，请检查控制台输出")
+
+    @qna.group("group")
+    def group(self):
+        pass
+
+    @group.command("list")
+    async def list_white_list_groups(self, event: AstrMessageEvent):
+        """获取在白名单的群号"""
+        qna_group_list = set(
+            group.strip() for group in self.config.get("qna_group_list", "").split(";")
+        )
+
+        if not qna_group_list:
+            yield event.plain_result("当前白名单列表为空")
+            return
+
+        # 格式化输出群号列表
+        group_list_str = "\n".join(f"- {group}" for group in sorted(qna_group_list))
+        result = f"当前白名单群号列表:\n{group_list_str}"
+        yield event.plain_result(result)
+
+    @group.command("add")
+    async def add_group_to_white_list(self, event: AstrMessageEvent, group_id: str):
+        """添加群组到QNA白名单"""
+        try:
+            # 检查群组ID格式是否正确，如果不合法，直接返回
+            if not group_id.strip().isdigit():
+                yield event.plain_result("⚠️ 群组ID必须为纯数字")
+                return
+
+            group_id = group_id.strip()
+
+            # 添加到白名单
+            self._add_to_list(group_id)
+            yield event.plain_result(f"✅ 群组 {group_id} 已成功添加到自动解答白名单")
+        except Exception as e:
+            # 捕获并记录日志，同时通知用户
+            logger.error(f"❌ 添加群组 {group_id} 到白名单失败，错误信息: {e}")
+            yield event.plain_result("❌ 添加到白名单失败，请查看控制台日志")
+
+    @group.command("del")
+    async def delete_group_from_white_list(self, event: AstrMessageEvent, group_id: str):
+        """从白名单中移除群组"""
+        try:
+            # 检查群组ID格式是否正确
+            if not group_id.strip().isdigit():
+                yield event.plain_result("⚠️ 群组ID必须为纯数字")
+                return
+
+            group_id = group_id.strip()
+
+            # 移除群组
+            self._remove_from_list(group_id)
+            yield event.plain_result(f"✅ 群组 {group_id} 已成功从自动解答白名单中移除")
+        except Exception as e:
+            # 捕获其他异常，记录日志并告知用户
+            logger.error(f"❌ 移除群组 {group_id} 时发生错误：{e}")
+            yield event.plain_result("❌ 从白名单中移除失败，请查看控制台日志")
