@@ -205,7 +205,7 @@ class QNA(Star):
             yield event.plain_result("❌ 从白名单中移除失败，请查看控制台日志")
 
     @filter.on_llm_response()
-    def remove_null_message(self, event: AstrMessageEvent, resp: LLMResponse):
+    async def remove_null_message(self, event: AstrMessageEvent, resp: LLMResponse):
         """
         如果结果为 `NULL` 则删除消息
         """
