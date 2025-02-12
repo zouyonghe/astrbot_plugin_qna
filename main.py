@@ -1,7 +1,7 @@
 import logging
 import random
 import re
-
+from astrbot.api.event import filter
 from astrbot.api.all import *
 from astrbot.core import astrbot_config
 
@@ -22,6 +22,10 @@ class QNA(Star):
 
         if question_keyword_list:
             self.question_pattern = r"(?i)(" + "|".join(map(re.escape, question_keyword_list)) + r")"
+
+    # 后面增加判断函数是否支持函数调用
+    # async def _check_provider_support_function_calling(self):
+    #     self.context.get_using_provider().get_model()
 
     def _in_qna_group_list(self, group_id: str) -> bool:
         qna_group_list = set(
@@ -78,10 +82,13 @@ class QNA(Star):
     @event_message_type(EventMessageType.GROUP_MESSAGE)
     async def auto_answer(self, event: AstrMessageEvent):
         """自动回答群消息中的问题"""
-
         # 判定是否启用自动回复
         if not self.config.get("enable_qna", False):
             return
+
+        # 判断模型是否支持函数调用
+        #if not self._model_support_function():
+        #    return
 
         # 如果没有配置关键词或启用群组列表，直接返回
         if not self._in_qna_group_list(event.get_group_id()) or not self.question_pattern:
@@ -195,3 +202,12 @@ class QNA(Star):
             # 捕获其他异常，记录日志并告知用户
             logger.error(f"❌ 移除群组 {group_id} 时发生错误：{e}")
             yield event.plain_result("❌ 从白名单中移除失败，请查看控制台日志")
+
+    @filter.on_decorating_result()
+    def remove_null_message(self, event: AstrMessageEvent):
+        """
+        如果结果为 `NULL` 则删除消息
+        """
+        result = event.get_result()
+
+
