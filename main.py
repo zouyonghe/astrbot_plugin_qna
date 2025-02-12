@@ -34,7 +34,7 @@ class QNA(Star):
             group.strip() for group in self.config.get("qna_group_list", "").split(";") if group.strip()
         )
         qna_group_list.add(group_id)
-        self.config["white_list"] = ";".join(sorted(qna_group_list))
+        self.config["qna_group_list"] = ";".join(sorted(qna_group_list))
 
     def _remove_from_list(self, group_id: str):
         qna_group_list = set(
