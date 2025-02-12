@@ -155,7 +155,7 @@ class QNA(Star):
         qna_group_list = set(
             group.strip() for group in self.config.get("qna_group_list", "").split(";")
         )
-        logger.error(f"qna_group_list: {qna_group_list}")
+
         if not qna_group_list:
             yield event.plain_result("当前白名单列表为空")
             return
@@ -203,7 +203,7 @@ class QNA(Star):
             logger.error(f"❌ 移除群组 {group_id} 时发生错误：{e}")
             yield event.plain_result("❌ 从白名单中移除失败，请查看控制台日志")
 
-    @filter.on_decorating_result()
+    @filter.on_llm_response()
     def remove_null_message(self, event: AstrMessageEvent):
         """
         如果结果为 `NULL` 则删除消息
@@ -221,13 +221,13 @@ class QNA(Star):
                 logger.debug(f"Found 'NULL' in message component: {comp.text}")
                 remove_items.append(comp)
 
-        # # 批量移除无效的消息组件
-        # for comp in remove_items:
-        #     logger.debug(f"Removing message component: {comp}")
-        #     chain.remove(comp)
-        #
-        # # 如果有删除操作，设置事件结果为 STOP
-        # if remove_items:
-        #     logger.debug(f"Removing {len(remove_items)} message components")
-        #     result.result_type = EventResultType.STOP
+        # 批量移除无效的消息组件
+        for comp in remove_items:
+            logger.debug(f"Removing message component: {comp}")
+            chain.remove(comp)
+
+        # 如果有删除操作，设置事件结果为 STOP
+        if remove_items:
+            logger.debug(f"Removing {len(remove_items)} message components")
+            result.result_type = EventResultType.STOP
 
