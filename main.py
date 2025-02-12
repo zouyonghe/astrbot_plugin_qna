@@ -214,24 +214,4 @@ class QNA(Star):
             if resp.completion_text.strip().upper() == "NULL":
                 logger.debug(f"Found 'NULL' in LLM response: {resp.completion_text}")
                 resp.completion_text = ""
-
-
-        # result = event.get_result()
-        # chain = result.chain
-        # remove_items = []  # 用于存储要删除的元素
-        #
-        # for comp in chain:
-        #     if isinstance(comp, Plain) and isinstance(comp.text, str) and comp.text.strip().upper() == "NULL":
-        #         logger.debug(f"Found 'NULL' in message component: {comp.text}")
-        #         remove_items.append(comp)
-        #
-        # # 批量移除无效的消息组件
-        # for comp in remove_items:
-        #     logger.debug(f"Removing message component: {comp}")
-        #     chain.remove(comp)
-        #
-        # # 如果有删除操作，设置事件结果为 STOP
-        # if remove_items:
-        #     logger.debug(f"Removing {len(remove_items)} message components")
-        #     result.result_type = EventResultType.STOP
-        #
+                event.stop_event()
