@@ -87,6 +87,7 @@ class QNA(Star):
         if not self.config.get("enable_qna", False):
             return
 
+        logger.error(f"Received group message: {event.message_str}")
         # 判断模型是否支持函数调用
         #if not self._model_support_function():
         #    return
