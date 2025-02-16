@@ -80,6 +80,10 @@ class QNA(Star):
         if not self.config.get("enable_qna", False):
             return
 
+        # 判定不是自己的消息
+        if event.get_sender_id() == event.get_self_id():
+            return
+
         # 如果没有配置关键词或启用群组列表，直接返回
         if not self._in_qna_group_list(event.get_group_id()) or not self.question_pattern:
             return
