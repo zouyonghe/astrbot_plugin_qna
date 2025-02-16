@@ -80,8 +80,6 @@ class QNA(Star):
         if not self.config.get("enable_qna", False):
             return
 
-        logger.error(f"Received group message: {event.message_str}")
-
         # 如果没有配置关键词或启用群组列表，直接返回
         if not self._in_qna_group_list(event.get_group_id()) or not self.question_pattern:
             return
