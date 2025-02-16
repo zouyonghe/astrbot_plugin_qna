@@ -1,9 +1,9 @@
 import logging
 import random
 import re
-from astrbot.api.event import filter
+
 from astrbot.api.all import *
-from astrbot.core import astrbot_config
+from astrbot.api.event import filter
 from astrbot.core.provider.entites import LLMResponse
 
 logger = logging.getLogger("astrbot")
@@ -14,8 +14,6 @@ class QNA(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
         self.config = config
-        self.bot_wake_prefix = tuple(p for p in astrbot_config['wake_prefix'] if p)
-        self.LLM_wake_prefix = astrbot_config['provider_settings']['wake_prefix']
 
         # 读取关键词列表
         question_keyword_list = self.config.get("question_keyword_list", "").split(";")
@@ -23,10 +21,6 @@ class QNA(Star):
 
         if question_keyword_list:
             self.question_pattern = r"(?i)(" + "|".join(map(re.escape, question_keyword_list)) + r")"
-
-    # 后面增加判断函数是否支持函数调用
-    # async def _check_provider_support_function_calling(self):
-    #     self.context.get_using_provider().get_model()
 
     def _in_qna_group_list(self, group_id: str) -> bool:
         qna_group_list = set(
@@ -79,7 +73,6 @@ class QNA(Star):
             conversation=conversation,
         )
 
-
     @event_message_type(EventMessageType.GROUP_MESSAGE)
     async def auto_answer(self, event: AstrMessageEvent):
         """自动回答群消息中的问题"""
@@ -88,19 +81,13 @@ class QNA(Star):
             return
 
         logger.error(f"Received group message: {event.message_str}")
-        # 判断模型是否支持函数调用
-        #if not self._model_support_function():
-        #    return
 
         # 如果没有配置关键词或启用群组列表，直接返回
         if not self._in_qna_group_list(event.get_group_id()) or not self.question_pattern:
             return
 
-        # 检测到两类唤醒词均交给原始流程处理
-        if self.bot_wake_prefix and event.message_str.startswith(self.bot_wake_prefix):
-            return
-
-        if self.LLM_wake_prefix and event.message_str.startswith(self.LLM_wake_prefix):
+        # 判定为非唤醒词消息
+        if event.is_at_or_wake_command:
             return
 
         # 匹配提问关键词
