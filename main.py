@@ -1,13 +1,9 @@
-import logging
 import random
 import re
 
 from astrbot.api.all import *
 from astrbot.api.event import filter
 from astrbot.core.provider.entites import LLMResponse
-
-logger = logging.getLogger("astrbot")
-
 
 @register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.1", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
