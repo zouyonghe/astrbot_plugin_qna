@@ -36,7 +36,6 @@ class QNA(Star):
         except Exception as e:
             logger.error(f"保存插件配置失败: {e}")
 
-
     def _in_qna_group_list(self, group_id: str) -> bool:
         qna_group_list = self.config.get("qna_group_list", [])
         return group_id in qna_group_list
