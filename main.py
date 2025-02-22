@@ -5,7 +5,9 @@ from astrbot.api.all import *
 from astrbot.api.event import filter
 from astrbot.core.provider.entites import LLMResponse
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.1", "https://github.com/zouyonghe/astrbot_plugin_qna")
+PLUGIN_CONFIG_PATH = "data/config/astrbot_plugin_qna_config.json"
+
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.2", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -18,25 +20,46 @@ class QNA(Star):
         if question_keyword_list:
             self.question_pattern = r"(?i)(" + "|".join(map(re.escape, question_keyword_list)) + r")"
 
+    def save_plugin_config(self, file_path=PLUGIN_CONFIG_PATH):
+        """
+        保存插件配置到文件
+        Args:
+            file_path: 保存的配置文件路径
+        """
+        if not file_path:
+            logger.error("插件配置文件路径不存在，保存失败。")
+            return
+        try:
+            with open(file_path, "w", encoding="utf-8") as config_file:
+                json.dump(self.config, config_file, indent=2, ensure_ascii=False)
+            logger.info(f"插件配置已保存到文件: {file_path}")
+        except Exception as e:
+            logger.error(f"保存插件配置失败: {e}")
+
+
     def _in_qna_group_list(self, group_id: str) -> bool:
-        qna_group_list = set(
-            group.strip() for group in self.config.get("qna_group_list", "").split(";")
-        )
+        qna_group_list = self.config.get("qna_group_list", [])
         return group_id in qna_group_list
 
     def _add_to_list(self, group_id: str):
-        qna_group_list = set(
-            group.strip() for group in self.config.get("qna_group_list", "").split(";") if group.strip()
-        )
-        qna_group_list.add(group_id)
-        self.config["qna_group_list"] = ";".join(sorted(qna_group_list))
+        qna_group_list = self.config.get("qna_group_list", [])
+        if not group_id or group_id == "":
+            return
+        if group_id in qna_group_list:
+            return
+        qna_group_list.append(group_id)
+        self.config["qna_group_list"] = qna_group_list
+        self.save_plugin_config()
 
     def _remove_from_list(self, group_id: str):
-        qna_group_list = set(
-            group.strip() for group in self.config.get("qna_group_list", "").split(";") if group.strip()
-        )
-        qna_group_list.discard(group_id)
-        self.config["qna_group_list"] = ";".join(sorted(qna_group_list))
+        qna_group_list = self.config.get("qna_group_list", [])
+        if not group_id or group_id == "":
+            return
+        if group_id not in qna_group_list:
+            return
+        qna_group_list.remove(group_id)
+        self.config["qna_group_list"] = qna_group_list
+        self.save_plugin_config()
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
 
@@ -113,6 +136,7 @@ class QNA(Star):
                 return
 
             self.config["enable_qna"] = True
+            self.save_plugin_config()
             yield event.plain_result("📢 自动解答已开启")
         except Exception as e:
             logger.error(f"自动解答开启失败: {e}")
@@ -127,6 +151,7 @@ class QNA(Star):
                 return
 
             self.config["enable_qna"] = False
+            self.save_plugin_config()
             yield event.plain_result("📢 自动解答已关闭")
         except Exception as e:
             logger.error(f"自动解答关闭失败: {e}")
@@ -137,24 +162,21 @@ class QNA(Star):
         pass
 
     @group.command("list")
-    async def list_white_list_groups(self, event: AstrMessageEvent):
-        """获取在白名单的群号"""
-        qna_group_list = set(
-            group.strip() for group in self.config.get("qna_group_list", "").split(";")
-        )
-
+    async def show_qna_list(self, event: AstrMessageEvent):
+        """获取启用解答的群号"""
+        qna_group_list = self.config.get("qna_group_list", [])
         if not qna_group_list:
             yield event.plain_result("当前白名单列表为空")
             return
 
         # 格式化输出群号列表
         group_list_str = "\n".join(f"- {group}" for group in sorted(qna_group_list))
-        result = f"当前白名单群号列表:\n{group_list_str}"
+        result = f"当前启用 QNA 群组列表:\n{group_list_str}"
         yield event.plain_result(result)
 
     @group.command("add")
-    async def add_group_to_white_list(self, event: AstrMessageEvent, group_id: str):
-        """添加群组到QNA白名单"""
+    async def add_to_qna_list(self, event: AstrMessageEvent, group_id: str):
+        """添加群组到 QNA 列表"""
         try:
             # 检查群组ID格式是否正确，如果不合法，直接返回
             if not group_id.strip().isdigit():
@@ -172,8 +194,8 @@ class QNA(Star):
             yield event.plain_result("❌ 添加到白名单失败，请查看控制台日志")
 
     @group.command("del")
-    async def delete_group_from_white_list(self, event: AstrMessageEvent, group_id: str):
-        """从白名单中移除群组"""
+    async def remove_from_qna_list(self, event: AstrMessageEvent, group_id: str):
+        """从 QNA 列表移除群组"""
         try:
             # 检查群组ID格式是否正确
             if not group_id.strip().isdigit():

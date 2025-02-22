@@ -6,10 +6,10 @@
         "hint": "全局设置是否启用自动回答"
     },
     "qna_group_list": {
-        "type": "string",
-        "description": "自动回答应用群组列表",
-        "default": "",
-        "hint": "列表内的群组才会自动回答，填写群号，群号之间使用英文分号分隔"
+        "type": "list",
+        "description": "自动回答的应用群组列表",
+        "default": [],
+        "hint": "列表内的群组才会自动回答"
     },
     "question_keyword_list": {
         "type": "string",
