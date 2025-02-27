@@ -220,4 +220,4 @@ class QNA(Star):
             # 检测是否为NULL
             if resp.completion_text.strip().upper() == "NULL":
                 logger.debug(f"Found 'NULL' in LLM response: {resp.completion_text}")
-                yield event.stop_event()
+                event.stop_event()
