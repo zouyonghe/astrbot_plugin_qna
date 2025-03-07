@@ -5,11 +5,10 @@ from astrbot.api.all import *
 from astrbot.api.event import filter
 from astrbot.core.provider.entites import LLMResponse
 
-PLUGIN_CONFIG_PATH = "data/config/astrbot_plugin_qna_config.json"
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.2", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.3", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
-    def __init__(self, context: Context, config: dict):
+    def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.config = config
 
@@ -19,22 +18,6 @@ class QNA(Star):
 
         if question_keyword_list:
             self.question_pattern = r"(?i)(" + "|".join(map(re.escape, question_keyword_list)) + r")"
-
-    def save_plugin_config(self, file_path=PLUGIN_CONFIG_PATH):
-        """
-        保存插件配置到文件
-        Args:
-            file_path: 保存的配置文件路径
-        """
-        if not file_path:
-            logger.error("插件配置文件路径不存在，保存失败。")
-            return
-        try:
-            with open(file_path, "w", encoding="utf-8") as config_file:
-                json.dump(self.config, config_file, indent=2, ensure_ascii=False)
-            logger.info(f"插件配置已保存到文件: {file_path}")
-        except Exception as e:
-            logger.error(f"保存插件配置失败: {e}")
 
     def _in_qna_group_list(self, group_id: str) -> bool:
         qna_group_list = self.config.get("qna_group_list", [])
@@ -48,7 +31,7 @@ class QNA(Star):
             return
         qna_group_list.append(group_id)
         self.config["qna_group_list"] = qna_group_list
-        self.save_plugin_config()
+        self.config.save_config()
 
     def _remove_from_list(self, group_id: str):
         qna_group_list = self.config.get("qna_group_list", [])
@@ -58,7 +41,7 @@ class QNA(Star):
             return
         qna_group_list.remove(group_id)
         self.config["qna_group_list"] = qna_group_list
-        self.save_plugin_config()
+        self.config.save_config()
 
     async def _llm_check_and_answer(self, event: AstrMessageEvent, message: str):
 
@@ -135,7 +118,7 @@ class QNA(Star):
                 return
 
             self.config["enable_qna"] = True
-            self.save_plugin_config()
+            self.config.save_config()
             yield event.plain_result("📢 自动解答已开启")
         except Exception as e:
             logger.error(f"自动解答开启失败: {e}")
@@ -150,7 +133,7 @@ class QNA(Star):
                 return
 
             self.config["enable_qna"] = False
-            self.save_plugin_config()
+            self.config.save_config()
             yield event.plain_result("📢 自动解答已关闭")
         except Exception as e:
             logger.error(f"自动解答关闭失败: {e}")
