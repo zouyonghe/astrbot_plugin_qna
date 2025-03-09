@@ -6,7 +6,7 @@ from astrbot.api.event import filter
 from astrbot.core.provider.entites import LLMResponse
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.3", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.4", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -82,7 +82,11 @@ class QNA(Star):
             return
 
         # 判定不是自己的消息
-        if event.get_sender_id() == event.get_self_id():
+        if event.get_sender_id() is event.get_self_id():
+            return
+
+        # 判定不是主动唤醒
+        if event.is_at_or_wake_command:
             return
 
         # 如果没有配置关键词或启用群组列表，直接返回
