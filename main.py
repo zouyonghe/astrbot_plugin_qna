@@ -81,20 +81,16 @@ class QNA(Star):
         if not self.config.get("enable_qna", False):
             return
 
-        # 判定不是自己的消息
-        if event.get_sender_id() is event.get_self_id():
-            return
-
         # 判定不是主动唤醒
         if event.is_at_or_wake_command:
             return
 
-        # 如果没有配置关键词或启用群组列表，直接返回
-        if not self._in_qna_group_list(event.get_group_id()) or not self.question_pattern:
+        # 判定不是自己的消息
+        if event.get_sender_id() is event.get_self_id():
             return
 
-        # 判定为非唤醒词消息
-        if event.is_at_or_wake_command:
+        # 如果没有配置关键词或启用群组列表，直接返回
+        if not self._in_qna_group_list(event.get_group_id()) or not self.question_pattern:
             return
 
         # 匹配提问关键词
