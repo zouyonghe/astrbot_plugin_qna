@@ -81,6 +81,9 @@ class QNA(Star):
         if not self.config.get("enable_qna", False):
             return
 
+        if event.is_private_chat():
+            return
+
         # 判定不是主动唤醒
         if event.is_at_or_wake_command:
             return
@@ -138,6 +141,13 @@ class QNA(Star):
         except Exception as e:
             logger.error(f"自动解答关闭失败: {e}")
             yield event.plain_result("❌ 自动解答关闭失败，请检查控制台输出")
+
+    @qna.command("id")
+    async def show_group_id(self, event: AstrMessageEvent):
+        if event.is_private_chat():
+            yield event.plain_result("检测到私聊，无群组ID。")
+            return
+        yield event.plain_result(event.get_group_id())
 
     @qna.group("group")
     def group(self):
