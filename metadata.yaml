@@ -1,6 +1,6 @@
 name: astrbot_plugin_qna
 desc: 自动识别群聊提问并作答的插件。
 help: 输入 /qna 查看关键词回复帮助。
-version: v1.1.5
+version: v1.1.6
 author: buding
 repo: https://github.com/zouyonghe/astrbot_plugin_qna

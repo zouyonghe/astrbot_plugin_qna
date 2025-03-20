@@ -6,7 +6,7 @@ from astrbot.api.event import filter
 from astrbot.core.provider.entites import LLMResponse
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.5", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.6", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -170,11 +170,6 @@ class QNA(Star):
     async def add_to_qna_list(self, event: AstrMessageEvent, group_id: str):
         """添加群组到 QNA 列表"""
         try:
-            # 检查群组ID格式是否正确，如果不合法，直接返回
-            if not group_id.strip().isdigit():
-                yield event.plain_result("⚠️ 群组ID必须为纯数字")
-                return
-
             group_id = group_id.strip()
 
             # 添加到白名单
@@ -189,11 +184,6 @@ class QNA(Star):
     async def remove_from_qna_list(self, event: AstrMessageEvent, group_id: str):
         """从 QNA 列表移除群组"""
         try:
-            # 检查群组ID格式是否正确
-            if not group_id.strip().isdigit():
-                yield event.plain_result("⚠️ 群组ID必须为纯数字")
-                return
-
             group_id = group_id.strip()
 
             # 移除群组
