@@ -6,7 +6,7 @@ from astrbot.api.event import filter
 from astrbot.core.provider.entites import LLMResponse
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.6", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.7", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -64,11 +64,13 @@ class QNA(Star):
         conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
         conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
 
+        contexts = json.loads(conversation.history) if conversation and conversation.history else []
+
         yield event.request_llm(
             prompt = qna_prompt,
             func_tool_manager = self.context.get_llm_tool_manager(),
             session_id = event.session_id,
-            contexts = json.loads(conversation.history),
+            contexts = contexts,
             system_prompt=self.context.provider_manager.selected_default_persona.get("prompt", ""),
             image_urls=[],
             conversation=conversation,
