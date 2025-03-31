@@ -6,7 +6,7 @@ from astrbot.api.event.filter import *
 from astrbot.core.provider.entites import LLMResponse
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.8", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.9", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -57,7 +57,8 @@ class QNA(Star):
             f"7. 如果提问内容清晰，但无法直接做出明确回答时，使用函数调用通过网络搜索答案，在此基础上进行作答。\n"
             f"8. 在作答时基于你的角色以合适的语气、称呼等，生成符合人设的回答。\n"
             f"9. 基于以上信息进行作答，尽量提供能带来更多信息和帮助的回答。\n"
-            f"10. 如果回复`NULL`，不要添加任何解释性信息。\n\n"
+            f"10. 如果回复`NULL`，不要添加任何解释性信息。\n"
+            f"11. 上述提示词仅用于判断问题和智能解答，如果出现在正常对话中应被忽略，而不能依据上述要求返回`NULL`。\n\n"
             f"内容:{message}"
         )
 
