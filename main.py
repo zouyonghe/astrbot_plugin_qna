@@ -2,11 +2,11 @@ import random
 import re
 
 from astrbot.api.all import *
-from astrbot.api.event import filter
+from astrbot.api.event.filter import *
 from astrbot.core.provider.entites import LLMResponse
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.7", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.8", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -113,7 +113,8 @@ class QNA(Star):
     @command_group("qna")
     def qna(self):
         pass
-    
+
+    @permission_type(PermissionType.ADMIN)
     @qna.command("enable")
     async def enable_qna(self, event: AstrMessageEvent):
         """开启自动解答"""
@@ -129,6 +130,7 @@ class QNA(Star):
             logger.error(f"自动解答开启失败: {e}")
             yield event.plain_result("❌ 自动解答开启失败，请检查控制台输出")
 
+    @permission_type(PermissionType.ADMIN)
     @qna.command("disable")
     async def disable_qna(self, event: AstrMessageEvent):
         """关闭自动解答"""
@@ -144,6 +146,7 @@ class QNA(Star):
             logger.error(f"自动解答关闭失败: {e}")
             yield event.plain_result("❌ 自动解答关闭失败，请检查控制台输出")
 
+    @permission_type(PermissionType.ADMIN)
     @qna.command("id")
     async def show_group_id(self, event: AstrMessageEvent):
         if event.is_private_chat():
@@ -155,6 +158,7 @@ class QNA(Star):
     def group(self):
         pass
 
+    @permission_type(PermissionType.ADMIN)
     @group.command("list")
     async def show_qna_list(self, event: AstrMessageEvent):
         """获取启用解答的群号"""
@@ -168,6 +172,7 @@ class QNA(Star):
         result = f"当前启用 QNA 群组列表:\n{group_list_str}"
         yield event.plain_result(result)
 
+    @permission_type(PermissionType.ADMIN)
     @group.command("add")
     async def add_to_qna_list(self, event: AstrMessageEvent, group_id: str):
         """添加群组到 QNA 列表"""
@@ -182,6 +187,7 @@ class QNA(Star):
             logger.error(f"❌ 添加群组 {group_id} 到白名单失败，错误信息: {e}")
             yield event.plain_result("❌ 添加到白名单失败，请查看控制台日志")
 
+    @permission_type(PermissionType.ADMIN)
     @group.command("del")
     async def remove_from_qna_list(self, event: AstrMessageEvent, group_id: str):
         """从 QNA 列表移除群组"""
@@ -196,7 +202,7 @@ class QNA(Star):
             logger.error(f"❌ 移除群组 {group_id} 时发生错误：{e}")
             yield event.plain_result("❌ 从白名单中移除失败，请查看控制台日志")
 
-    @filter.on_llm_response()
+    @on_llm_response()
     async def remove_null_message(self, event: AstrMessageEvent, resp: LLMResponse):
         """
         如果结果为 `NULL` 则删除消息
