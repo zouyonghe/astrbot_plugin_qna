@@ -20,7 +20,7 @@
     "llm_answer_probability": {
         "type": "float",
         "description": "调用LLM回答的概率",
-        "default": 1,
+        "default": 0.1,
         "hint": "根据设置的概率回答问题，0代表完全不回答，1代表必然使用LLM回答"
     }
 }

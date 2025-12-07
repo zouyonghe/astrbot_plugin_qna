@@ -1,19 +1,22 @@
 import random
 import re
+import json
 
 from astrbot.api.all import *
 from astrbot.api.event.filter import *
 from astrbot.core.provider.entites import LLMResponse
 
 
-@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.9", "https://github.com/zouyonghe/astrbot_plugin_qna")
+@register("QNA", "buding", "一个用于自动回答群聊问题的插件", "1.1.10", "https://github.com/zouyonghe/astrbot_plugin_qna")
 class QNA(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.config = config
 
         # 读取关键词列表
-        question_keyword_list = self.config.get("question_keyword_list", "").split(";")
+        question_keyword_list = [
+            kw.strip() for kw in self.config.get("question_keyword_list", "").split(";") if kw.strip()
+        ]
         self.question_pattern = None  # 默认值
 
         if question_keyword_list:
@@ -65,7 +68,12 @@ class QNA(Star):
         conversation_id = await self.context.conversation_manager.get_curr_conversation_id(event.unified_msg_origin)
         conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin, conversation_id)
 
-        contexts = json.loads(conversation.history) if conversation and conversation.history else []
+        contexts = []
+        if conversation and conversation.history:
+            try:
+                contexts = json.loads(conversation.history)
+            except (TypeError, json.JSONDecodeError):
+                logger.warning("Failed to parse conversation history, fallback to empty contexts")
 
         yield event.request_llm(
             prompt = qna_prompt,
@@ -92,7 +100,7 @@ class QNA(Star):
             return
 
         # 判定不是自己的消息
-        if event.get_sender_id() is event.get_self_id():
+        if event.get_sender_id() == event.get_self_id():
             return
 
         # 如果没有配置关键词或启用群组列表，直接返回
@@ -104,7 +112,14 @@ class QNA(Star):
             return
 
         # 检测字数、LLM概率调用
-        if len(event.message_str) > 50 or random.random() > float(self.config.get("llm_answer_probability", 0.1)):
+        try:
+            probability = float(self.config.get("llm_answer_probability", 0.1))
+        except (TypeError, ValueError):
+            logger.warning("Invalid llm_answer_probability config, fallback to 0.1")
+            probability = 0.1
+        probability = min(max(probability, 0.0), 1.0)
+
+        if len(event.message_str) > 50 or random.random() > probability:
             return
 
         async for resp in self._llm_check_and_answer(event, event.message_str):
